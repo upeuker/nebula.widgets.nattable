@@ -227,10 +227,6 @@ public abstract class AbstractLayerTransform extends AbstractLayer {
 	}
 
 	public int underlyingToLocalRowPosition(ILayer sourceUnderlyingLayer, int underlyingRowPosition) {
-		if (sourceUnderlyingLayer != getUnderlyingLayer()) {
-			return -1;
-		}
-
 		return underlyingRowPosition;
 	}
 	

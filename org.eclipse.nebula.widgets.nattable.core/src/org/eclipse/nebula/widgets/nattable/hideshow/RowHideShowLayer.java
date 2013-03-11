@@ -13,11 +13,14 @@ package org.eclipse.nebula.widgets.nattable.hideshow;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+import org.eclipse.nebula.widgets.nattable.coordinate.Range;
 import org.eclipse.nebula.widgets.nattable.hideshow.command.MultiRowHideCommandHandler;
 import org.eclipse.nebula.widgets.nattable.hideshow.command.MultiRowShowCommandHandler;
 import org.eclipse.nebula.widgets.nattable.hideshow.command.RowHideCommandHandler;
@@ -25,6 +28,10 @@ import org.eclipse.nebula.widgets.nattable.hideshow.command.ShowAllRowsCommandHa
 import org.eclipse.nebula.widgets.nattable.hideshow.event.HideRowPositionsEvent;
 import org.eclipse.nebula.widgets.nattable.hideshow.event.ShowRowPositionsEvent;
 import org.eclipse.nebula.widgets.nattable.layer.IUniqueIndexLayer;
+import org.eclipse.nebula.widgets.nattable.layer.event.ILayerEvent;
+import org.eclipse.nebula.widgets.nattable.layer.event.IStructuralChangeEvent;
+import org.eclipse.nebula.widgets.nattable.layer.event.StructuralDiff;
+import org.eclipse.nebula.widgets.nattable.layer.event.StructuralDiff.DiffTypeEnum;
 import org.eclipse.nebula.widgets.nattable.persistence.IPersistable;
 
 
@@ -44,6 +51,77 @@ public class RowHideShowLayer extends AbstractRowHideShowLayer {
 		registerCommandHandler(new MultiRowShowCommandHandler(this));
 	}
 
+	
+	@Override
+	public void handleLayerEvent(ILayerEvent event) {
+		if (event instanceof IStructuralChangeEvent) {
+			IStructuralChangeEvent structuralChangeEvent = (IStructuralChangeEvent) event;
+			if (structuralChangeEvent.isVerticalStructureChanged() && structuralChangeEvent.convertToLocal(this)) {
+				Collection<StructuralDiff> rowDiffs = structuralChangeEvent.getRowDiffs();
+				if (rowDiffs != null) {
+					List<Integer> toRemove = new ArrayList<Integer>();
+					for (Iterator<StructuralDiff> diffIterator = rowDiffs.iterator(); diffIterator.hasNext();) {
+						StructuralDiff rowDiff = diffIterator.next();
+						if (rowDiff.getDiffType() != null && rowDiff.getDiffType().equals(DiffTypeEnum.DELETE)) {
+							Range beforePositionRange = rowDiff.getBeforePositionRange();
+							for (Iterator<Integer> it = this.hiddenRowIndexes.iterator(); it.hasNext();) {
+								Integer hiddenRow = it.next();
+								if (hiddenRow == beforePositionRange.start) {
+									toRemove.add(hiddenRow);
+									diffIterator.remove();
+									//FIXME modify other row indexes
+								}
+							}
+						}
+					}
+					
+					handleVerticalStructureUpdates(rowDiffs);
+				}
+			}
+		}
+		super.handleLayerEvent(event);
+	}
+	
+	
+	protected void handleVerticalStructureUpdates(Collection<StructuralDiff> rowDiffs) {
+		for (StructuralDiff rowDiff : rowDiffs) {
+			if (rowDiff.getDiffType() != null && rowDiff.getDiffType().equals(DiffTypeEnum.DELETE)) {
+				Range beforePositionRange = rowDiff.getBeforePositionRange();
+				Set<Integer> modifiedHiddenRows = new HashSet<Integer>();
+				for (Integer hiddenRow : this.hiddenRowIndexes) {
+					if (hiddenRow != beforePositionRange.start) {
+						//the deleted row was not hidden before
+						//if it was hidden it will not be added to the new collection
+						if (hiddenRow > beforePositionRange.start) {
+							//if the hidden row was before the deleted row
+							//we need to lower the index because of missing a row
+							modifiedHiddenRows.add(hiddenRow-1);
+						}
+						else {
+							modifiedHiddenRows.add(hiddenRow);
+						}
+					}
+				}
+				RowHideShowLayer.this.hiddenRowIndexes.clear();
+				RowHideShowLayer.this.hiddenRowIndexes.addAll(modifiedHiddenRows);
+			}
+			else if (rowDiff.getDiffType() != null && rowDiff.getDiffType().equals(DiffTypeEnum.ADD)) {
+				Range beforePositionRange = rowDiff.getBeforePositionRange();
+				Set<Integer> modifiedHiddenRows = new HashSet<Integer>();
+				for (Integer hiddenRow : this.hiddenRowIndexes) {
+					if (hiddenRow >= beforePositionRange.start) {
+						modifiedHiddenRows.add(hiddenRow+1);
+					}
+					else {
+						modifiedHiddenRows.add(hiddenRow);
+					}
+				}
+				RowHideShowLayer.this.hiddenRowIndexes.clear();
+				RowHideShowLayer.this.hiddenRowIndexes.addAll(modifiedHiddenRows);
+			}
+		}
+	}
+	
 	// Persistence
 	
 	@Override
