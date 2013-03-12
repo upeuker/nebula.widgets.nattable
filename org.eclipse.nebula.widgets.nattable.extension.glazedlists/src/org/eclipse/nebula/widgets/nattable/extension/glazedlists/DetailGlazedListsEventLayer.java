@@ -32,13 +32,30 @@ import ca.odell.glazedlists.event.ListEvent;
 import ca.odell.glazedlists.event.ListEventListener;
 
 /**
+ * This layer acts as the event listener for:
+ * <ol>
+ *    <li>Glazed list events - {@link ListEvent}
+ *    <li>Bean updates - PropertyChangeEvent(s)
+ * </ol>
+ * 
+ * Compared to the GlazedListsEventLayer, this layer does not conflate events and only
+ * fire a single RowStructuralRefreshEvent for all events within 100ms. Instead it will
+ * fire a corresponding NatTable event with the detail information for every {@link ListEvent}
+ * fired by the GlazedLists immediately.
+ * 
+ * @param <T> Type of the bean in the backing list.
+ * 
  * @author Dirk Fauth
  *
  */
-public class NewGlazedListsEventLayer<T> extends AbstractLayerTransform
+public class DetailGlazedListsEventLayer<T> extends AbstractLayerTransform
 		implements IUniqueIndexLayer, ListEventListener<T>, PropertyChangeListener {
 
-	private static final Scheduler scheduler = new Scheduler(NewGlazedListsEventLayer.class.getSimpleName());
+	/**
+	 * The scheduler needed to add cleanup tasks which are scheduled after handling
+	 * glazedlists events.
+	 */
+	private static final Scheduler scheduler = new Scheduler(DetailGlazedListsEventLayer.class.getSimpleName());
 
 	/**
 	 * The underlying layer of type {@link IUniqueIndexLayer}
@@ -57,16 +74,27 @@ public class NewGlazedListsEventLayer<T> extends AbstractLayerTransform
 	 */
 	private EventList<T> eventList;
 	
-	
+	/**
+	 * The {@link ListEvent} that was handled before. Needed to ensure that the same event
+	 * is not processed several times. Will be reset by the cleanup task 100ms after the handling.
+	 */
 	private ListEvent<T> lastFiredEvent;
 	
-	
+	/**
+	 * The current scheduled cleanup task which is stored to ensure that at most only one cleanup
+	 * task is active at any time and it can be stopped if the NatTable itself is disposed to avoid
+	 * still active background tasks that get never be done.
+	 */
 	private ScheduledFuture<?> cleanupFuture;
 	
 	/**
-	 * @param underlyingLayer
+	 * Create a new {@link DetailGlazedListsEventLayer} which is in fact a {@link ListEventListener}
+	 * that listens to GlazedLists events and translate them into events that are understandable
+	 * by the NatTable.
+	 * @param underlyingLayer The underlying layer of type {@link IUniqueIndexLayer}
+	 * @param eventList The {@link EventList} this layer should be added as listener.
 	 */
-	public NewGlazedListsEventLayer(IUniqueIndexLayer underlyingLayer, EventList<T> eventList) {
+	public DetailGlazedListsEventLayer(IUniqueIndexLayer underlyingLayer, EventList<T> eventList) {
 		super(underlyingLayer);
 		this.underlyingLayer = underlyingLayer;
 		
@@ -115,7 +143,7 @@ public class NewGlazedListsEventLayer<T> extends AbstractLayerTransform
 				cleanupFuture = scheduler.schedule(new Runnable() {
 					@Override
 					public void run() {
-						NewGlazedListsEventLayer.this.lastFiredEvent = null;
+						DetailGlazedListsEventLayer.this.lastFiredEvent = null;
 					}
 				}, 100L);
 			}
@@ -126,7 +154,7 @@ public class NewGlazedListsEventLayer<T> extends AbstractLayerTransform
 	public boolean doCommand(ILayerCommand command) {
 		if (command instanceof DisposeResourcesCommand) {
 			//ensure to kill a possible running cleanup task
-			if (cleanupFuture == null || cleanupFuture.isDone() || cleanupFuture.isCancelled()) {
+			if (cleanupFuture != null && !cleanupFuture.isDone() && !cleanupFuture.isCancelled()) {
 				scheduler.unschedule(cleanupFuture);
 			}
 		}

@@ -12,7 +12,6 @@ package org.eclipse.nebula.widgets.nattable.tree;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -134,10 +133,6 @@ public class TreeLayer extends AbstractRowHideShowLayer {
 	 * @param parentIndex The index of the row that shows the node that should be collapsed
 	 */
 	public void collapseTreeRow(int parentIndex) {
-		//TODO remember the hidden rows before collapse because they will be deleted
-		//when using GlazedLists for collapse and therefore need to be restored on expand
-//		storeHiddenRowStates(this.treeRowModel.getChildIndexes(parentIndex));
-		
 		List<Integer> rowIndexes = this.treeRowModel.collapse(parentIndex);
 		List<Integer> rowPositions = new ArrayList<Integer>();
 		for (Integer rowIndex : rowIndexes) {
@@ -160,10 +155,6 @@ public class TreeLayer extends AbstractRowHideShowLayer {
 		List<Integer> rowIndexes = 	this.treeRowModel.expand(parentIndex);
 		this.hiddenRowIndexes.removeAll(rowIndexes);
 		invalidateCache();
-		
-		//TODO restore the hidden states
-//		restoreHiddenRowStates();
-		
 		fireLayerEvent(new ShowRowPositionsEvent(this, rowIndexes));
 	}
 	
@@ -176,34 +167,6 @@ public class TreeLayer extends AbstractRowHideShowLayer {
 	private boolean isHiddenInUnderlyingLayer(int rowIndex) {
 		IUniqueIndexLayer underlyingLayer = (IUniqueIndexLayer) getUnderlyingLayer();
 		return (underlyingLayer.getRowPositionByIndex(rowIndex) == -1);
-	}
-	
-	private List<Integer> hiddenCollapsed = new ArrayList<Integer>();
-	
-	private void storeHiddenRowStates(List<Integer> collapsed) {
-		for (Integer rowIndex : collapsed) {
-			if (isHiddenInUnderlyingLayer(rowIndex)) {
-				hiddenCollapsed.add(rowIndex);
-			}
-		}
-	}
-	
-	private void restoreHiddenRowStates() {
-		List<Integer> hidePositions = new ArrayList<Integer>();
-		for (Iterator<Integer> iterator = hiddenCollapsed.iterator(); iterator.hasNext();) {
-			Integer rowIndex = iterator.next();
-			if (!isHiddenInUnderlyingLayer(rowIndex)) {
-				hidePositions.add(getRowPositionByIndex(rowIndex));
-				iterator.remove();
-			}
-		}
-		if (!hidePositions.isEmpty()) {
-			int[] positions = new int[hidePositions.size()];
-			for (int i = 0; i < hidePositions.size(); i++) {
-				positions[i] = hidePositions.get(i); 
-			}
-			new MultiRowHideCommand(this, positions);
-		}
 	}
 	
 	@Override

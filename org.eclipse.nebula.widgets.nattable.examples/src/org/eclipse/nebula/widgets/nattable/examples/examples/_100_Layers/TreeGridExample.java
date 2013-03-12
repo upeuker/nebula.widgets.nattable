@@ -28,7 +28,7 @@ import org.eclipse.nebula.widgets.nattable.examples.runner.StandaloneNatExampleR
 import org.eclipse.nebula.widgets.nattable.extension.glazedlists.GlazedListsDataProvider;
 import org.eclipse.nebula.widgets.nattable.extension.glazedlists.GlazedListsEventLayer;
 import org.eclipse.nebula.widgets.nattable.extension.glazedlists.GlazedListsSortModel;
-import org.eclipse.nebula.widgets.nattable.extension.glazedlists.NewGlazedListsEventLayer;
+import org.eclipse.nebula.widgets.nattable.extension.glazedlists.DetailGlazedListsEventLayer;
 import org.eclipse.nebula.widgets.nattable.extension.glazedlists.tree.GlazedListTreeData;
 import org.eclipse.nebula.widgets.nattable.extension.glazedlists.tree.GlazedListTreeRowModel;
 import org.eclipse.nebula.widgets.nattable.grid.data.DefaultColumnHeaderDataProvider;
@@ -104,8 +104,8 @@ public class TreeGridExample extends AbstractNatExample {
 		
 //		GlazedListsEventLayer<Datum> glazedListsEventLayer = 
 //				new GlazedListsEventLayer<Datum>(bodyDataLayer, treeList);
-		NewGlazedListsEventLayer<Datum> glazedListsEventLayer = 
-				new NewGlazedListsEventLayer<Datum>(bodyDataLayer, treeList);
+		DetailGlazedListsEventLayer<Datum> glazedListsEventLayer = 
+				new DetailGlazedListsEventLayer<Datum>(bodyDataLayer, treeList);
 
 		// Body layer
 		ColumnReorderLayer columnReorderLayer = new ColumnReorderLayer(glazedListsEventLayer);
