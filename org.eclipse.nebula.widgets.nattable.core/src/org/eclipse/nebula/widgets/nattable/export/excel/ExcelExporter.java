@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -54,13 +55,15 @@ public class ExcelExporter implements ILayerExporter {
      */
     private final IOutputStreamProvider outputStreamProvider;
 
+    private Charset usedCharSet;
+
     /**
      * Creates a new ExcelExporter using a FileOutputStreamProvider with default
      * values.
      */
     public ExcelExporter() {
         this(new FileOutputStreamProvider("table_export.xls", //$NON-NLS-1$
-        new String[] { "Excel Workbook (*.xls)" }, new String[] { "*.xls" })); //$NON-NLS-1$ //$NON-NLS-2$
+                new String[] { "Excel Workbook (*.xls)" }, new String[] { "*.xls" })); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     /**
@@ -81,7 +84,9 @@ public class ExcelExporter implements ILayerExporter {
     }
 
     @Override
-    public void exportBegin(OutputStream outputStream) throws IOException {}
+    public void exportBegin(OutputStream outputStream) throws IOException {
+        this.usedCharSet = Charset.forName(this.charset);
+    }
 
     @Override
     public void exportEnd(OutputStream outputStream) throws IOException {}
@@ -168,7 +173,7 @@ public class ExcelExporter implements ILayerExporter {
     }
 
     private byte[] asBytes(String string) {
-        return string.getBytes();
+        return string.getBytes(this.usedCharSet);
     }
 
     private String getFontInCSSFormat(Font font) {
