@@ -41,6 +41,7 @@ public class NatExporter {
     private static final Log log = LogFactory.getLog(NatExporter.class);
 
     private final Shell shell;
+    private boolean open = true;
 
     public NatExporter(Shell shell) {
         this.shell = shell;
@@ -88,7 +89,9 @@ public class NatExporter {
                     }
                 }
 
-                openExport(exporter);
+                if (NatExporter.this.open) {
+                    openExport(exporter);
+                }
             }
         };
 
@@ -143,7 +146,9 @@ public class NatExporter {
                     }
                 }
 
-                openExport(exporter);
+                if (NatExporter.this.open) {
+                    openExport(exporter);
+                }
             }
         };
 
@@ -272,6 +277,13 @@ public class NatExporter {
                 && exporter.getResult() instanceof File) {
             Program.launch(((File) exporter.getResult()).getAbsolutePath());
         }
+    }
+
+    /**
+     * @since 1.5
+     */
+    public void setOpen(boolean open) {
+        this.open = open;
     }
 
 }
