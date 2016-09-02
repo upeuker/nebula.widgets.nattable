@@ -12,7 +12,7 @@ import org.eclipse.swt.widgets.Shell;
 
 /**
  * Simple IOutputStreamProvider for a given filepath, no user interaction
- * necessary.
+ * necessary. Useful for intergration of the fileselector anywehre in the UI.
  *
  * @author Uwe Peuker
  * @since 1.5
