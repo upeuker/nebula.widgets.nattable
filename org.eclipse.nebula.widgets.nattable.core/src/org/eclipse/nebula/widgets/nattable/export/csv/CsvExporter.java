@@ -16,6 +16,7 @@ import org.eclipse.swt.widgets.Shell;
  * Simple CSV-Exporter ignoring cell spans.
  *
  * @author Uwe Peuker
+ * @since 1.5
  */
 public class CsvExporter implements ILayerExporter {
 
